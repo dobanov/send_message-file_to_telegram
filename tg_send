@@ -1,5 +1,6 @@
 #include <iostream>
 #include <curl/curl.h>
+#include <string>
 
 using namespace std;
 
@@ -40,20 +41,58 @@ void sendFileToTelegram(string botId, string chatId, string filePath) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 4) {
-        cerr << "Usage: " << argv[0] << " <bot_id> <chat_id> <message_or_file_path>" << endl;
+    if (argc == 1) {
+        cerr << "Usage: " << argv[0] << " -c <chat_id> -b <bot_id> [-m <message> | -f <file_path>] [-d] [-h]" << endl;
         return 1;
     }
 
-    string botId = argv[1];
-    string chatId = argv[2];
-    string input = argv[3];
+    string botId, chatId, input;
+    bool debugMode = false;
+
+    for (int i = 1; i < argc; i++) {
+        string flag = argv[i];
+        if (flag == "-c" && i + 1 < argc) {
+            chatId = argv[++i];
+        } else if (flag == "-b" && i + 1 < argc) {
+            botId = argv[++i];
+        } else if (flag == "-m" && i + 1 < argc) {
+            input = argv[++i];
+        } else if (flag == "-f" && i + 1 < argc) {
+            input = argv[++i];
+        } else if (flag == "-d") {
+            debugMode = true;
+        } else if (flag == "-h") {
+            cout << "Help: This program sends messages or files to Telegram using the provided bot and chat IDs." << endl;
+            cout << "Options:" << endl;
+            cout << "-c <chat_id> : Specify the chat ID to send the message or file to." << endl;
+            cout << "-b <bot_id> : Specify the bot ID for authentication." << endl;
+            cout << "-m <message> : Specify the message to send." << endl;
+            cout << "-f <file_path> : Specify the path to the file to send." << endl;
+            cout << "-d : Enable debug mode." << endl;
+            cout << "-h : Display this help message." << endl;
+            return 0;
+        } else {
+            cerr << "Invalid option: " << flag << endl;
+            return 1;
+        }
+    }
+
+    if (chatId.empty() || botId.empty()) {
+        cerr << "Error: Both chat ID and bot ID are required." << endl;
+        return 1;
+    }
+
+    if (debugMode) {
+        cout << "Bot ID: " << botId << endl;
+        cout << "Chat ID: " << chatId << endl;
+        if (!input.empty()) {
+            cout << "Input: " << input << endl;
+        }
+    }
 
     if (input.find(".") != string::npos) {
-        // Assume input is a file path
         sendFileToTelegram(botId, chatId, input);
     } else {
-        // Assume input is a message
         sendTextToTelegram(botId, chatId, input);
     }
 
