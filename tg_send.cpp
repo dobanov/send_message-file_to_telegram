@@ -6,7 +6,10 @@
 
 // Callback function for writing response data
 size_t writeCallback(char* contents, size_t size, size_t nmemb, void* userp) {
-    return size * nmemb;
+    std::string* response = static_cast<std::string*>(userp);
+    size_t totalSize = size * nmemb;
+    response->append(contents, totalSize);
+    return totalSize;
 }
 
 // Function to send text message to multiple Telegram chat IDs
@@ -16,12 +19,21 @@ void sendTextToTelegram(const std::string& botId, const std::vector<std::string>
         for (const auto& chatId : chatIds) {
             std::string url = "https://api.telegram.org/bot" + botId + "/sendMessage";
             std::string data = "chat_id=" + chatId + "&text=" + message;
+
+            std::string responseBuffer;
             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
-            curl_easy_perform(curl);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseBuffer);
+
+            CURLcode res = curl_easy_perform(curl);
 
             if (debugMode) {
+                if (res != CURLE_OK) {
+                    std::cerr << "CURL error: " << curl_easy_strerror(res) << std::endl;
+                } else {
+                    std::cout << "Response: " << responseBuffer << std::endl;
+                }
                 std::cout << "Sent message to chat ID " << chatId << ": " << message << std::endl;
             }
         }
@@ -50,13 +62,22 @@ void sendFileToTelegram(const std::string& botId, const std::vector<std::string>
             }
 
             std::string url = "https://api.telegram.org/bot" + botId + "/sendDocument";
+            std::string responseBuffer;
             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
             curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
-            curl_easy_perform(curl);
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseBuffer);
+
+            CURLcode res = curl_easy_perform(curl);
 
             curl_formfree(formpost);
 
             if (debugMode) {
+                if (res != CURLE_OK) {
+                    std::cerr << "CURL error: " << curl_easy_strerror(res) << std::endl;
+                } else {
+                    std::cout << "Response: " << responseBuffer << std::endl;
+                }
                 std::cout << "Sent file to chat ID " << chatId << " with message: " << message << std::endl;
             }
         }
@@ -139,9 +160,9 @@ int main(int argc, char* argv[]) {
         sendTextToTelegram(botId, chatIds, message, debugMode);
     }
 
-if (!filePath.empty()) {
-    sendFileToTelegram(botId, chatIds, filePath, message, debugMode);
-}
+    if (!filePath.empty()) {
+        sendFileToTelegram(botId, chatIds, filePath, message, debugMode);
+    }
 
     return 0;
 }
