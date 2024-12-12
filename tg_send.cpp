@@ -30,15 +30,26 @@ void sendTextToTelegram(const std::string& botId, const std::vector<std::string>
 }
 
 // Function to send a file to multiple Telegram chat IDs
-void sendFileToTelegram(const std::string& botId, const std::vector<std::string>& chatIds, const std::string& filePath, bool debugMode) {
+// Function to send a file with a message to multiple Telegram chat IDs
+// Function to send a file with a message to multiple Telegram chat IDs
+void sendFileToTelegram(const std::string& botId, const std::vector<std::string>& chatIds, const std::string& filePath, const std::string& message, bool debugMode) {
     CURL* curl = curl_easy_init();
     if (curl) {
         for (const auto& chatId : chatIds) {
             struct curl_httppost* formpost = NULL;
             struct curl_httppost* lastptr = NULL;
 
-            curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "chat_id", CURLFORM_COPYCONTENTS, chatId.c_str(), CURLFORM_END);
-            curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "document", CURLFORM_FILE, filePath.c_str(), CURLFORM_END);
+            curl_formadd(&formpost, &lastptr,
+                         CURLFORM_COPYNAME, "chat_id",
+                         CURLFORM_COPYCONTENTS, chatId.c_str(), CURLFORM_END);
+            curl_formadd(&formpost, &lastptr,
+                         CURLFORM_COPYNAME, "document",
+                         CURLFORM_FILE, filePath.c_str(), CURLFORM_END);
+            if (!message.empty()) {
+                curl_formadd(&formpost, &lastptr,
+                             CURLFORM_COPYNAME, "caption",
+                             CURLFORM_COPYCONTENTS, message.c_str(), CURLFORM_END);
+            }
 
             std::string url = "https://api.telegram.org/bot" + botId + "/sendDocument";
             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -48,7 +59,7 @@ void sendFileToTelegram(const std::string& botId, const std::vector<std::string>
             curl_formfree(formpost);
 
             if (debugMode) {
-                std::cout << "Sent file to chat ID " << chatId << ": " << filePath << std::endl;
+                std::cout << "Sent file to chat ID " << chatId << " with message: " << message << std::endl;
             }
         }
         curl_easy_cleanup(curl);
@@ -130,10 +141,9 @@ int main(int argc, char* argv[]) {
         sendTextToTelegram(botId, chatIds, message, debugMode);
     }
 
-    if (!filePath.empty()) {
-        sendFileToTelegram(botId, chatIds, filePath, debugMode);
-    }
+if (!filePath.empty()) {
+    sendFileToTelegram(botId, chatIds, filePath, message, debugMode);
+}
 
     return 0;
 }
-
