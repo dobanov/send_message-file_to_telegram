@@ -29,8 +29,6 @@ void sendTextToTelegram(const std::string& botId, const std::vector<std::string>
     }
 }
 
-// Function to send a file to multiple Telegram chat IDs
-// Function to send a file with a message to multiple Telegram chat IDs
 // Function to send a file with a message to multiple Telegram chat IDs
 void sendFileToTelegram(const std::string& botId, const std::vector<std::string>& chatIds, const std::string& filePath, const std::string& message, bool debugMode) {
     CURL* curl = curl_easy_init();
